@@ -1,8 +1,5 @@
-﻿using System;
-
-namespace Bunny
+﻿namespace Bunny.Messages
 {
-    [Flags]
     public enum Step
     {
         None = 0,

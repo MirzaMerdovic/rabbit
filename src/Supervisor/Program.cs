@@ -1,9 +1,13 @@
 ﻿using Bunny;
+using Bunny.Messages;
+using Microsoft.Toolkit.HighPerformance;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Supervisor
 {
@@ -22,18 +26,19 @@ namespace Supervisor
 
             Console.WriteLine(" [*] Waiting for messages.");
 
-            var consumer = new EventingBasicConsumer(channel);
+            var consumer = new AsyncEventingBasicConsumer(channel);
 
-            consumer.Received += (model, ea) =>
+            consumer.Received += async (model, ea) =>
             {
-                var message = Encoding.UTF8.GetString(ea.Body.ToArray());
+                var message = await JsonSerializer.DeserializeAsync<RequestGeneration>(ea.Body.AsStream());
                 var correlationId = ea.BasicProperties.CorrelationId;
 
                 Console.WriteLine(" [x] Received {0}. CID: {1}", message, correlationId);
 
-                // here channel could also be accessed as ((EventingBasicConsumer)sender).Model
-                var c = ((EventingBasicConsumer)model).Model;
-                c.BasicAck(deliveryTag: ea.DeliveryTag, multiple: false);
+                var c = ((AsyncEventingBasicConsumer)model).Model;
+                c.BasicAck(ea.DeliveryTag, false);
+
+                await Task.Yield();
             };
 
             channel.BasicConsume(queue: REQUESTS_QUEUE, autoAck: false, consumer: consumer);

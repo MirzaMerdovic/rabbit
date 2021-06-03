@@ -1,7 +1,9 @@
 ﻿using Bunny;
+using Bunny.Messages;
 using RabbitMQ.Client;
 using System;
 using System.Text;
+using System.Text.Json;
 
 namespace Requester
 {
@@ -16,8 +18,13 @@ namespace Requester
 
             channel.QueueDeclare(queue: REQUESTS_QUEUE, durable: true, exclusive: false, autoDelete: false, arguments: null);
 
-            int message = (int)Step.GenerateImagePreview + (int)Step.GenerateMetadata;
-            var body = Encoding.UTF8.GetBytes(message.ToString());
+            var message = new RequestGeneration
+            {
+                Id = new Random().Next(1000),
+                Steps = new[] { Step.GenerateImagePreview, Step.GenerateMetadata }
+            };
+
+            var body = JsonSerializer.SerializeToUtf8Bytes(message);
 
             var properties = channel.CreateBasicProperties();
             properties.Persistent = true;
